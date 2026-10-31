@@ -23,6 +23,7 @@ from .models import (
     Scale,
     Score,
     Subject,
+    UsageSummary,
     Value,
 )
 
@@ -115,6 +116,28 @@ def reconcile(values: list[tuple[Value, float]], method: str) -> tuple[Value, fl
     if all(type(v) in (int, float) for v in raw):
         return fn(raw), n
     return min(values, key=lambda pair: (abs(pair[1] - n), pair[1]))[0], n
+
+
+def rubric_hash(rubric: Rubric) -> str:
+    canonical = json.dumps(
+        rubric.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":")
+    )
+    return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def summarize_usage(judgements: dict[str, list[Judgement]]) -> UsageSummary:
+    entries = [
+        entry
+        for values in judgements.values()
+        for entry in values
+        if entry.model is not None or entry.usage is not None
+    ]
+    active = [entry for entry in entries if not entry.cached]
+    totals = {}
+    for field in ("prompt_tokens", "completion_tokens", "estimated_cost_usd", "latency_seconds"):
+        values = [getattr(entry.usage, field) if entry.usage else None for entry in active]
+        totals[field] = None if any(value is None for value in values) else sum(values)
+    return UsageSummary(calls=len(active), cache_hits=len(entries) - len(active), **totals)
 
 
 def new_run(rubric: Rubric) -> RunRecord:
@@ -283,21 +306,28 @@ def score(
     )
     if failed:
         verdict = "failed"
-    canonical = json.dumps(
-        rubric.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":")
+    record = run or new_run(rubric)
+    record = record.model_copy(
+        update={
+            "options": record.options.model_copy(
+                update={"reconcile_method": reconcile_method, "disagreement": disagreement}
+            )
+        }
     )
     return Result(
         rubric=RubricRecord(
             id=rubric.id,
             version=rubric.version,
-            hash="sha256:" + hashlib.sha256(canonical.encode()).hexdigest(),
+            hash=rubric_hash(rubric),
+            definition=rubric.model_copy(deep=True),
         ),
         subject=subject,
-        run=run or new_run(rubric),
+        run=record,
         metrics=metrics,
         groups=groups,
         group_sums=group_sums,
         score=Score(n=n, reported=reported, raw=root_sum),
+        usage=summarize_usage(judgements),
         verdict=verdict,
         gates=gates,
         flags=flags,

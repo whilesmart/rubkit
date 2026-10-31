@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 Number = Annotated[float, Field(allow_inf_nan=False)]
 Unit = Annotated[Number, Field(ge=0, le=1)]
@@ -15,7 +15,7 @@ Value = float | bool | str
 
 
 class Model(BaseModel):
-    model_config = ConfigDict(extra="allow", allow_inf_nan=False)
+    model_config = ConfigDict(extra="allow", allow_inf_nan=False, serialize_by_alias=True)
 
     @model_validator(mode="after")
     def extensions(self):
@@ -133,6 +133,16 @@ class Condition(Model):
     in_: list[Any] | None = Field(default=None, alias="in")
     exists: bool | None = None
 
+    @model_serializer(mode="wrap")
+    def serialize_condition(self, handler):
+        data = handler(self)
+        for field in ("equals", "in_", "exists"):
+            if field not in self.model_fields_set:
+                data.pop(field, None)
+                if field == "in_":
+                    data.pop("in", None)
+        return data
+
     @model_validator(mode="after")
     def one_operator(self):
         if len(self.model_fields_set & {"equals", "in_", "exists"}) != 1:
@@ -200,7 +210,7 @@ class Band(Model):
 
 
 class Rubric(Model):
-    rubrickit: Literal["0.1"]
+    rubkit: Literal["0.1"]
     id: Slug
     version: Annotated[
         str,
@@ -260,6 +270,18 @@ class Subject(Model):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class CallUsage(Model):
+    prompt_tokens: int | None = Field(default=None, ge=0)
+    completion_tokens: int | None = Field(default=None, ge=0)
+    estimated_cost_usd: Weight | None = None
+    latency_seconds: Weight | None = None
+
+
+class UsageSummary(CallUsage):
+    calls: int = 0
+    cache_hits: int = 0
+
+
 class Judgement(Model):
     judge: str
     value: Value | None = None
@@ -269,6 +291,8 @@ class Judgement(Model):
     status: Literal["scored", "missing", "na"] = "scored"
     model: str | None = None
     route: str | None = None
+    usage: CallUsage | None = None
+    cached: bool = False
     prompt: str | None = None
 
 
@@ -290,11 +314,21 @@ class RubricRecord(Model):
     id: str
     version: str
     hash: str
+    definition: Rubric | None = None
+
+
+class RunOptions(Model):
+    seed: int = 0
+    shuffle: bool = False
+    reconcile_method: Reconcile = "median"
+    disagreement: Unit = 0.4
 
 
 class RunRecord(Model):
     id: str
     started_at: str
+    source_run_id: str | None = None
+    options: RunOptions = Field(default_factory=RunOptions)
     judges: dict[str, JudgeConfig] = Field(default_factory=dict)
 
 
@@ -306,6 +340,7 @@ class Result(Model):
     groups: dict[str, Unit | None]
     group_sums: dict[str, Number | None] = Field(default_factory=dict)
     score: Score
+    usage: UsageSummary = Field(default_factory=UsageSummary)
     verdict: str | None
     gates: list[dict[str, Any]] = Field(default_factory=list)
     flags: list[str] = Field(default_factory=list)

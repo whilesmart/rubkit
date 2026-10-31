@@ -3,30 +3,30 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rubrickit"
+name = "rubkit"
 version = "0.1.0"
 description = "Portable rubric evaluation with deterministic scoring"
 readme = "README.md"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{name = "WhileSmart"}]
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2.12,<3", "PyYAML>=6,<7", "jsonschema>=4.23,<5"]
 
 [project.urls]
-Homepage = "https://github.com/whilesmart/rubrickit"
-Repository = "https://github.com/whilesmart/rubrickit"
-Issues = "https://github.com/whilesmart/rubrickit/issues"
+Homepage = "https://github.com/whilesmart/rubkit"
+Repository = "https://github.com/whilesmart/rubkit"
+Issues = "https://github.com/whilesmart/rubkit/issues"
 
 [project.optional-dependencies]
 llm = ["litellm>=1.106.6,<2"]
 dev = ["pytest>=8", "ruff>=0.12", "build>=1", "setuptools>=77", "wheel"]
 
 [project.scripts]
-rubrickit = "rubrickit.cli:main"
+rubkit = "rubkit.cli:main"
 
 [tool.setuptools.package-data]
-rubrickit = ["py.typed", "schemas/*.json"]
+rubkit = ["py.typed", "schemas/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

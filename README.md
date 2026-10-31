@@ -1,10 +1,10 @@
-# Rubrickit
+# Rubkit
 
 Evaluate subjects against portable YAML rubrics. Judges supply evidence and scores; the scoring engine applies scales, weights, gates, and verdict bands without making network calls.
 
 Python 3.11 or newer. Licensed under MIT.
 
-The package is not yet published on PyPI.
+The package is not yet published on PyPI. The distribution, Python import, and CLI names are `rubkit`.
 
 ## Install
 
@@ -18,16 +18,16 @@ The `llm` extra provides a LiteLLM model router. Core imports do not load LiteLL
 ## Try the scorecard
 
 ```sh
-rubrickit validate spec/fixtures/story.yaml
-rubrickit run spec/fixtures/story.yaml spec/fixtures/subjects.json \
+rubkit validate spec/fixtures/story.yaml
+rubkit run spec/fixtures/story.yaml spec/fixtures/subjects.json \
   --judgements spec/fixtures/judgements.json --output result.json
-rubrickit report result.json
+rubkit report result.json
 ```
 
 Subjects are JSON objects with `id`, `content`, and optional `meta`. The CLI accepts one subject or a list. Imported judgements are nested by subject id, then metric id, with a list of judgements at each leaf. Results are always a JSON list.
 
 ```python
-from rubrickit import Judgement, Subject, load_rubric, score
+from rubkit import Judgement, Subject, load_rubric, score
 
 rubric = load_rubric("spec/fixtures/story.yaml")
 result = score(
@@ -40,9 +40,9 @@ print(result.score.reported)
 
 ## Rubrics
 
-Rubrics require `rubrickit: "0.1"`, `id`, `version`, `name`, and at least one metric. Every metric needs a scale, either inline or through `defaults.scale`. Named scales, defaults, nested groups, gates, bands, and simple metadata conditions follow the v0.1 format.
+Rubrics require `rubkit: "0.1"`, `id`, `version`, `name`, and at least one metric. Every metric needs a scale, either inline or through `defaults.scale`. Named scales, defaults, nested groups, gates, bands, and simple metadata conditions follow the v0.1 format.
 
-Unknown fields are rejected except fields beginning with `x-`. Rubric and result JSON Schemas ship in `src/rubrickit/schemas/`. Pydantic additionally checks references, cycles, scale bounds, and other constraints involving multiple fields.
+Unknown fields are rejected except fields beginning with `x-`. Rubric and result JSON Schemas ship in `src/rubkit/schemas/`. Pydantic additionally checks references, cycles, scale bounds, and other constraints involving multiple fields.
 
 Inheritance merges metrics and groups by id, merges mapping fields recursively, and replaces other lists. Relative paths resolve against the child rubric. URL loading is available through `load_rubric(path, allow_urls=True)`.
 
@@ -73,7 +73,7 @@ Linear mappings clamp outside their endpoints. Point mappings interpolate betwee
 * Samples from each judge reconcile first using that judge's configuration. Judges then have equal votes, reconciled by median by default. `score(..., reconcile_method="mean")` or `"majority"` selects another method across judges. Majority ties raise an error.
 * Mean and median operate on normalized scores. For numeric scales the raw value uses the same statistic. For categorical scales the displayed raw label is the closest observed level, with the lower normalized level breaking ties. The normalized score retains the exact statistic.
 * A disagreement flag uses the spread of all normalized judgements and the smallest participating judge threshold.
-* The rubric hash covers the resolved rubric including defaults. Scoring values are deterministic; run ids and timestamps are new for each invocation. Pass a fixed `RunRecord` to `score` when comparing entire result documents.
+* The rubric hash covers the resolved rubric including defaults. Results embed that resolved rubric. Scoring values are deterministic; run ids and timestamps are new for each invocation. Pass a fixed `RunRecord` to `score` when comparing entire result documents.
 
 ## Judges and routing
 
@@ -81,7 +81,7 @@ A judge implements `judge(subject, metric) -> Judgement`. `HumanJudge` prompts f
 
 LLM judges send one metric per call with evidence requested before the score. They use the shared model router. Configure a provider and model directly in a rubric, or use a router alias with a separate deployment configuration. Credentials belong in provider environment variables, never in rubric files.
 
-Use `rubrickit run ... --estimate` for the uncached LLM call count. `--cache directory` reuses sampled judgements. Cache keys include the resolved rubric, subject, judge, sample index, and seed. `--shuffle --seed 42` changes metric and judge order reproducibly. Repeated independent calls are controlled by `samples`.
+Use `rubkit run ... --estimate` for the uncached LLM call count. `--cache directory` reuses sampled judgements. Cache keys include the resolved rubric, subject, judge, sample index, and seed. `--shuffle --seed 42` changes metric and judge order reproducibly. Repeated independent calls are controlled by `samples`.
 
 For an alias-based judge:
 
@@ -99,16 +99,45 @@ defaults:
 Add this to a rubric with scales and metrics. Run it with a deployment configuration:
 
 ```sh
-rubrickit run rubric.yaml subjects.json --router-config spec/fixtures/router.example.yaml --cache .rubrickit-cache
+rubkit run rubric.yaml subjects.json --router-config spec/fixtures/router.example.yaml --cache .rubkit-cache
 ```
 
 The example routes `quality` to Anthropic and declares an OpenAI fallback. Set the corresponding provider API keys in your environment. A provider/model rubric entry also uses the router; no direct provider client is created. Models must support structured JSON output. Temperature is omitted unless explicitly configured.
 
 The Python runner accepts a `router=ModelRouter.from_file(path)`, custom judge instances, and adapters for an existing inference gateway. `assignments={"metric-id": ["judge-name"]}` overrides rubric judge assignments for a run. Results record the resolved assignments and rubric hash. All subjects in one run share the run id and start timestamp.
 
+## Export, replay, and compare
+
+JSON and YAML results embed the resolved rubric and original judgements. An embedded rubric must match its recorded hash before it can be replayed.
+
+```sh
+rubkit run spec/fixtures/story.yaml spec/fixtures/subjects.json \
+  --judgements spec/fixtures/judgements.json --output results.yaml
+rubkit export results.yaml --output results.csv
+rubkit rerun results.yaml --output replay.json
+rubkit rerun results.yaml --rejudge --router-config router.yaml --output fresh.json
+rubkit arena results.yaml --output rankings.json
+```
+
+`rerun` reuses saved judgements by default and makes no judge calls. `--rejudge` invokes the original judges again against the saved subject and rubric. It requires any original Python function dependencies or provider credentials. Router deployments and credentials remain external to the result.
+
+CSV exports contain one row per judgement, with rows for unscored metrics as well. They preserve zero and false scores, evidence, judge rationale, and model names. CSV is a viewing format; use JSON or YAML for replay.
+
+`arena` compares saved results from the same resolved rubric. It rejects blocked results, duplicate subject ids, and differing rubric hashes. Equal scores share a rank, and the next rank skips tied positions.
+
+## Usage and cost estimates
+
+```sh
+rubkit run rubric.yaml subjects.json --dry-run --router-config router.yaml
+```
+
+`--estimate` counts uncached LLM calls without loading LLM dependencies. `--dry-run` adds token and dollar estimates through LiteLLM, using the exact judging prompts. It considers all deployments and configured fallbacks for each route. The output-token allowance is 2,048 per call. Unknown pricing is `null` with a flag. Estimates exclude retry costs, failed calls, schema overhead, and cache savings; they are not spending limits.
+
+Completed judgements record token usage, estimated cost, and latency when the router supplies them. `result.usage` totals new calls and counts cache hits separately. Cached entries retain their original call records but contribute no new cost. Custom adapters without usage data report unknown totals. Pricing comes from LiteLLM's model catalog and may differ from your bill.
+
 ## Trust tools
 
-`rubrickit.trust` provides nominal Cohen's kappa, nominal or interval Krippendorff's alpha with missing ratings, normalized calibration error, absolute ranking with ties, pairwise preferences, and pairwise win-count ranking. Undefined agreement returns `None`.
+`rubkit.trust` provides nominal Cohen's kappa, nominal or interval Krippendorff's alpha with missing ratings, normalized calibration error, absolute ranking with ties, pairwise preferences, and pairwise win-count ranking. Undefined agreement returns `None`.
 
 `sensitivity` perturbs each metric and group weight independently by a percentage in both directions, reporting verdict and ranking changes. It requires complete, rankable baseline results. Pairwise ranking counts wins and half-points for ties; callers should provide a balanced comparison schedule.
 
@@ -124,8 +153,12 @@ python -m build
 Regenerate packaged schemas after model changes:
 
 ```sh
-python -c 'from pathlib import Path; from rubrickit.loading import write_schemas; write_schemas(Path("src/rubrickit/schemas"))'
+python -c 'from pathlib import Path; from rubkit.loading import write_schemas; write_schemas(Path("src/rubkit/schemas"))'
 ```
+
+## License
+
+MIT. See `LICENSE` and `THIRD_PARTY_NOTICES.md` for the retained upstream notice.
 
 ## Publishing
 
@@ -133,9 +166,9 @@ Create a PyPI account with two-factor authentication, then add a pending GitHub 
 
 | Field | Value |
 | --- | --- |
-| PyPI project | `rubrickit` |
+| PyPI project | `rubkit` |
 | Owner | `whilesmart` |
-| Repository | `rubrickit` |
+| Repository | `rubkit` |
 | Workflow filename | `publish.yml` |
 | Environment | `pypi` |
 

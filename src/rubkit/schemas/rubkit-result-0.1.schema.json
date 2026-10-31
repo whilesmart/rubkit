@@ -100,6 +100,68 @@
         "^x-": {}
       }
     },
+    "CallUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "prompt_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Tokens"
+        },
+        "completion_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completion Tokens"
+        },
+        "estimated_cost_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Cost Usd"
+        },
+        "latency_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Seconds"
+        }
+      },
+      "title": "CallUsage",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
     "Condition": {
       "additionalProperties": false,
       "properties": {
@@ -421,6 +483,129 @@
         "^x-": {}
       }
     },
+    "Judgement": {
+      "additionalProperties": false,
+      "properties": {
+        "judge": {
+          "title": "Judge",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "rationale": {
+          "default": "",
+          "title": "Rationale",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "status": {
+          "default": "scored",
+          "enum": [
+            "scored",
+            "missing",
+            "na"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "route": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Route"
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CallUsage"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cached": {
+          "default": false,
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt"
+        }
+      },
+      "required": [
+        "judge"
+      ],
+      "title": "Judgement",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
     "Linear": {
       "additionalProperties": false,
       "properties": {
@@ -646,6 +831,74 @@
         "^x-": {}
       }
     },
+    "MetricResult": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "N"
+        },
+        "status": {
+          "enum": [
+            "scored",
+            "missing",
+            "na"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "judgements": {
+          "items": {
+            "$ref": "#/$defs/Judgement"
+          },
+          "title": "Judgements",
+          "type": "array"
+        },
+        "flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "MetricResult",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
     "Numeric": {
       "additionalProperties": false,
       "properties": {
@@ -798,6 +1051,329 @@
         "^x-": {}
       }
     },
+    "Rubric": {
+      "additionalProperties": false,
+      "properties": {
+        "rubkit": {
+          "const": "0.1",
+          "title": "Rubkit",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Version",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "extends": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extends"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SubjectSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scales": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "binary": "#/$defs/Binary",
+                "measured": "#/$defs/Measured",
+                "numeric": "#/$defs/Numeric",
+                "ordinal": "#/$defs/Ordinal"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Numeric"
+              },
+              {
+                "$ref": "#/$defs/Binary"
+              },
+              {
+                "$ref": "#/$defs/Ordinal"
+              },
+              {
+                "$ref": "#/$defs/Measured"
+              }
+            ]
+          },
+          "title": "Scales",
+          "type": "object"
+        },
+        "judges": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JudgeConfig"
+          },
+          "title": "Judges",
+          "type": "object"
+        },
+        "defaults": {
+          "$ref": "#/$defs/Defaults"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/Group"
+          },
+          "title": "Groups",
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/Metric"
+          },
+          "minItems": 1,
+          "title": "Metrics",
+          "type": "array"
+        },
+        "aggregate": {
+          "$ref": "#/$defs/Aggregate"
+        },
+        "bands": {
+          "items": {
+            "$ref": "#/$defs/Band"
+          },
+          "title": "Bands",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rubkit",
+        "id",
+        "version",
+        "name",
+        "metrics"
+      ],
+      "title": "Rubric",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "RubricRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "hash": {
+          "title": "Hash",
+          "type": "string"
+        },
+        "definition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Rubric"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "hash"
+      ],
+      "title": "RubricRecord",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "RunOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "seed": {
+          "default": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "shuffle": {
+          "default": false,
+          "title": "Shuffle",
+          "type": "boolean"
+        },
+        "reconcile_method": {
+          "default": "median",
+          "enum": [
+            "median",
+            "mean",
+            "majority"
+          ],
+          "title": "Reconcile Method",
+          "type": "string"
+        },
+        "disagreement": {
+          "default": 0.4,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Disagreement",
+          "type": "number"
+        }
+      },
+      "title": "RunOptions",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "RunRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "string"
+        },
+        "source_run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Run Id"
+        },
+        "options": {
+          "$ref": "#/$defs/RunOptions"
+        },
+        "judges": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JudgeConfig"
+          },
+          "title": "Judges",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "started_at"
+      ],
+      "title": "RunRecord",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Score": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "N"
+        },
+        "reported": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reported"
+        }
+      },
+      "required": [
+        "n",
+        "reported"
+      ],
+      "title": "Score",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Subject": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "content": {
+          "default": null,
+          "title": "Content"
+        },
+        "meta": {
+          "additionalProperties": true,
+          "title": "Meta",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Subject",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
     "SubjectSpec": {
       "additionalProperties": false,
       "properties": {
@@ -823,35 +1399,135 @@
       "patternProperties": {
         "^x-": {}
       }
+    },
+    "UsageSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "prompt_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Tokens"
+        },
+        "completion_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completion Tokens"
+        },
+        "estimated_cost_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Cost Usd"
+        },
+        "latency_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Seconds"
+        },
+        "calls": {
+          "default": 0,
+          "title": "Calls",
+          "type": "integer"
+        },
+        "cache_hits": {
+          "default": 0,
+          "title": "Cache Hits",
+          "type": "integer"
+        }
+      },
+      "title": "UsageSummary",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
     }
   },
   "additionalProperties": false,
   "properties": {
-    "rubrickit": {
-      "const": "0.1",
-      "title": "Rubrickit",
-      "type": "string"
+    "rubric": {
+      "$ref": "#/$defs/RubricRecord"
     },
-    "id": {
-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-      "title": "Id",
-      "type": "string"
+    "subject": {
+      "$ref": "#/$defs/Subject"
     },
-    "version": {
-      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
-      "title": "Version",
-      "type": "string"
+    "run": {
+      "$ref": "#/$defs/RunRecord"
     },
-    "name": {
-      "title": "Name",
-      "type": "string"
+    "metrics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MetricResult"
+      },
+      "title": "Metrics",
+      "type": "object"
     },
-    "description": {
-      "default": "",
-      "title": "Description",
-      "type": "string"
+    "groups": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Groups",
+      "type": "object"
     },
-    "extends": {
+    "group_sums": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Group Sums",
+      "type": "object"
+    },
+    "score": {
+      "$ref": "#/$defs/Score"
+    },
+    "usage": {
+      "$ref": "#/$defs/UsageSummary"
+    },
+    "verdict": {
       "anyOf": [
         {
           "type": "string"
@@ -860,93 +1536,34 @@
           "type": "null"
         }
       ],
-      "default": null,
-      "title": "Extends"
+      "title": "Verdict"
     },
-    "subject": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/SubjectSpec"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
-    },
-    "scales": {
-      "additionalProperties": {
-        "discriminator": {
-          "mapping": {
-            "binary": "#/$defs/Binary",
-            "measured": "#/$defs/Measured",
-            "numeric": "#/$defs/Numeric",
-            "ordinal": "#/$defs/Ordinal"
-          },
-          "propertyName": "type"
-        },
-        "oneOf": [
-          {
-            "$ref": "#/$defs/Numeric"
-          },
-          {
-            "$ref": "#/$defs/Binary"
-          },
-          {
-            "$ref": "#/$defs/Ordinal"
-          },
-          {
-            "$ref": "#/$defs/Measured"
-          }
-        ]
-      },
-      "title": "Scales",
-      "type": "object"
-    },
-    "judges": {
-      "additionalProperties": {
-        "$ref": "#/$defs/JudgeConfig"
-      },
-      "title": "Judges",
-      "type": "object"
-    },
-    "defaults": {
-      "$ref": "#/$defs/Defaults"
-    },
-    "groups": {
+    "gates": {
       "items": {
-        "$ref": "#/$defs/Group"
+        "additionalProperties": true,
+        "type": "object"
       },
-      "title": "Groups",
+      "title": "Gates",
       "type": "array"
     },
-    "metrics": {
+    "flags": {
       "items": {
-        "$ref": "#/$defs/Metric"
+        "type": "string"
       },
-      "minItems": 1,
-      "title": "Metrics",
-      "type": "array"
-    },
-    "aggregate": {
-      "$ref": "#/$defs/Aggregate"
-    },
-    "bands": {
-      "items": {
-        "$ref": "#/$defs/Band"
-      },
-      "title": "Bands",
+      "title": "Flags",
       "type": "array"
     }
   },
   "required": [
-    "rubrickit",
-    "id",
-    "version",
-    "name",
-    "metrics"
+    "rubric",
+    "subject",
+    "run",
+    "metrics",
+    "groups",
+    "score",
+    "verdict"
   ],
-  "title": "Rubric",
+  "title": "Result",
   "type": "object",
   "patternProperties": {
     "^x-": {}

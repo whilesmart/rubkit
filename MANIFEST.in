@@ -1,3 +1,4 @@
 include README.md
 recursive-include spec *.yaml *.json
 recursive-include tests *.py
+include THIRD_PARTY_NOTICES.md

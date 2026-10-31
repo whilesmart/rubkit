@@ -5,18 +5,18 @@ import pytest
 from jsonschema import Draft202012Validator
 from pydantic import TypeAdapter, ValidationError
 
-from rubrickit import Judgement, Rubric, Subject, load_rubric, normalize, score
-from rubrickit.loading import RubricError, schema_for
-from rubrickit.models import Result, RunRecord, Scale
-from rubrickit.scoring import aggregate
-from rubrickit.trust import cohens_kappa, krippendorffs_alpha, sensitivity
+from rubkit import Judgement, Rubric, Subject, load_rubric, normalize, score
+from rubkit.loading import RubricError, schema_for
+from rubkit.models import Result, RunRecord, Scale
+from rubkit.scoring import aggregate
+from rubkit.trust import cohens_kappa, krippendorffs_alpha, sensitivity
 
 FIXTURES = Path(__file__).parents[1] / "spec" / "fixtures"
 
 
 def rubric(**overrides):
     data = dict(
-        rubrickit="0.1",
+        rubkit="0.1",
         id="test",
         version="1.0.0",
         name="Test",

@@ -8,11 +8,11 @@ import pytest
 from jsonschema import Draft202012Validator
 from test_core import FIXTURES, rubric, votes
 
-from rubrickit import Judgement, Subject
-from rubrickit.judges import FunctionJudge, HumanJudge, estimate_calls, run
-from rubrickit.loading import schema_for
-from rubrickit.models import Result, Rubric
-from rubrickit.trust import Preference, calibrate, pairwise, pairwise_ranking, ranking
+from rubkit import Judgement, Subject
+from rubkit.judges import FunctionJudge, HumanJudge, estimate_calls, run
+from rubkit.loading import schema_for
+from rubkit.models import Result, Rubric
+from rubkit.trust import Preference, calibrate, pairwise, pairwise_ranking, ranking
 
 ROOT = Path(__file__).parents[1]
 
@@ -20,7 +20,7 @@ ROOT = Path(__file__).parents[1]
 def cli(*args):
     env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
     return subprocess.run(
-        [sys.executable, "-m", "rubrickit", *map(str, args)],
+        [sys.executable, "-m", "rubkit", *map(str, args)],
         env=env,
         capture_output=True,
         text=True,
@@ -54,7 +54,7 @@ def test_cli_end_to_end(tmp_path):
 
 def test_cli_invalid(tmp_path):
     path = tmp_path / "bad.yaml"
-    path.write_text('rubrickit: "0.1"\nid: test\nnope: true\n')
+    path.write_text('rubkit: "0.1"\nid: test\nnope: true\n')
     result = cli("validate", path)
     assert result.returncode == 2
     assert str(path) + ":1:" in result.stderr
@@ -137,7 +137,7 @@ def test_registered_function_run():
 
 def test_schema_files_current():
     for name, model in [("rubric", Rubric), ("result", Result)]:
-        path = ROOT / "src" / "rubrickit" / "schemas" / f"rubrickit-{name}-0.1.schema.json"
+        path = ROOT / "src" / "rubkit" / "schemas" / f"rubkit-{name}-0.1.schema.json"
         assert json.loads(path.read_text()) == schema_for(model)
         Draft202012Validator.check_schema(schema_for(model))
 
@@ -147,7 +147,7 @@ def test_pairwise_and_rankings():
     left, right = Subject(id="left"), Subject(id="right")
     preferences = pairwise(r, left, right, lambda a, b, m: Preference(m.id, a.id, b.id, a.id))
     assert pairwise_ranking(["left", "right"], preferences) == [["left"], ["right"]]
-    from rubrickit import score
+    from rubkit import score
 
     assert ranking([score(r, left, votes(a=10, b=10)), score(r, right, votes(a=2, b=2))]) == [
         ["left"],
@@ -169,7 +169,7 @@ def test_runtime_assignment_and_no_network_imports():
         [
             sys.executable,
             "-c",
-            'import rubrickit; import rubrickit.judges; import sys; assert "litellm" not in sys.modules; assert "anthropic" not in sys.modules',
+            'import rubkit; import rubkit.judges; import sys; assert "litellm" not in sys.modules; assert "anthropic" not in sys.modules',
         ],
         env=env,
         capture_output=True,
