@@ -1,0 +1,45 @@
+rubrickit: "0.1"
+id: story-quality
+version: 1.0.0
+name: Story quality scorecard
+scales:
+  score:
+    type: numeric
+    min: 0
+    max: 5
+    step: 1
+    anchors: {0: Absent, 1: Weak, 3: Adequate, 5: Excellent}
+defaults:
+  scale: score
+groups:
+  - {id: story, name: Storytelling, weight: 4}
+  - {id: humor, name: Humor, weight: 2}
+  - {id: brand, name: Brand fit, weight: 1}
+metrics:
+  - id: desire
+    name: Character desire
+    question: Does the protagonist want something specific and immediate?
+    group: story
+    gate: {below: 2, action: cap, cap: 0.6, message: No clear want}
+  - {id: motivation, name: Motivation, question: "Do actions make sense?", group: story}
+  - {id: causality, name: Causality, question: "Do events follow choices?", group: story}
+  - {id: conflict, name: Conflict, question: "Are objectives incompatible?", group: story}
+  - {id: stakes, name: Stakes, question: "What could be lost?", group: story}
+  - {id: escalation, name: Escalation, question: "Does difficulty grow?", group: story}
+  - {id: payoff, name: Payoff, question: "Does the ending reward the setup?", group: story}
+  - {id: comedy, name: Comedy, question: "Does humor emerge from character?", group: humor}
+  - {id: originality, name: Originality, question: "Does the premise avoid obvious jokes?", group: humor}
+  - id: integration
+    name: Natural integration
+    question: Would the story entertain without the brand?
+    group: brand
+    applies_if: {field: meta.branded, equals: true}
+aggregate:
+  method: weighted_mean
+  missing: reweight
+  report_scale: {min: 0, max: 50}
+bands:
+  - {min: 43, label: Strong}
+  - {min: 35, label: Solid}
+  - {min: 20, label: Needs work}
+  - {min: 0, label: Weak}

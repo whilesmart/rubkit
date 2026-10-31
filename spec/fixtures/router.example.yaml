@@ -1,0 +1,12 @@
+model_list:
+  - model_name: quality
+    litellm_params:
+      model: anthropic/claude-sonnet-5-5
+  - model_name: backup
+    litellm_params:
+      model: openai/gpt-6.1-sol
+router_settings:
+  num_retries: 0
+  timeout: 60
+  fallbacks:
+    - quality: [backup]

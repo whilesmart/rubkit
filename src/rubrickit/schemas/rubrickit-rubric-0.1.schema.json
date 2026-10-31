@@ -1,0 +1,955 @@
+{
+  "$defs": {
+    "Aggregate": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "default": "weighted_mean",
+          "enum": [
+            "weighted_mean",
+            "sum",
+            "min",
+            "geometric_mean"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "missing": {
+          "default": "reweight",
+          "enum": [
+            "reweight",
+            "zero",
+            "block"
+          ],
+          "title": "Missing",
+          "type": "string"
+        },
+        "report_scale": {
+          "$ref": "#/$defs/ReportScale"
+        }
+      },
+      "title": "Aggregate",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Band": {
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "title": "Min",
+          "type": "number"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "min",
+        "label"
+      ],
+      "title": "Band",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Binary": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "default": "higher_better",
+          "enum": [
+            "higher_better",
+            "lower_better"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "anchors": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Anchors",
+          "type": "object"
+        },
+        "type": {
+          "const": "binary",
+          "title": "Type",
+          "type": "string"
+        },
+        "true_label": {
+          "default": "true",
+          "title": "True Label",
+          "type": "string"
+        },
+        "false_label": {
+          "default": "false",
+          "title": "False Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Binary",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Condition": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "title": "Field",
+          "type": "string"
+        },
+        "equals": {
+          "default": null,
+          "title": "Equals"
+        },
+        "in": {
+          "anyOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "In"
+        },
+        "exists": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exists"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "title": "Condition",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Defaults": {
+      "additionalProperties": false,
+      "properties": {
+        "scale": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "binary": "#/$defs/Binary",
+                  "measured": "#/$defs/Measured",
+                  "numeric": "#/$defs/Numeric",
+                  "ordinal": "#/$defs/Ordinal"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Numeric"
+                },
+                {
+                  "$ref": "#/$defs/Binary"
+                },
+                {
+                  "$ref": "#/$defs/Ordinal"
+                },
+                {
+                  "$ref": "#/$defs/Measured"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "weight": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        },
+        "judges": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Judges",
+          "type": "array"
+        },
+        "missing": {
+          "anyOf": [
+            {
+              "enum": [
+                "reweight",
+                "zero",
+                "block"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing"
+        }
+      },
+      "title": "Defaults",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Gate": {
+      "additionalProperties": false,
+      "properties": {
+        "below": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Below"
+        },
+        "action": {
+          "enum": [
+            "fail",
+            "cap",
+            "flag"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "cap": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cap"
+        },
+        "message": {
+          "default": "",
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "below",
+        "action"
+      ],
+      "title": "Gate",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Group": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "weight": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        },
+        "aggregate": {
+          "$ref": "#/$defs/Aggregate"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Group",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "JudgeConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "human",
+            "function",
+            "llm"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "provider": {
+          "default": "router",
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "samples": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Samples",
+          "type": "integer"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temperature"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt"
+        },
+        "reconcile": {
+          "default": "median",
+          "enum": [
+            "median",
+            "mean",
+            "majority"
+          ],
+          "title": "Reconcile",
+          "type": "string"
+        },
+        "disagreement": {
+          "default": 0.4,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Disagreement",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "JudgeConfig",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Linear": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "linear",
+          "title": "Type",
+          "type": "string"
+        },
+        "best": {
+          "title": "Best",
+          "type": "number"
+        },
+        "worst": {
+          "title": "Worst",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "best",
+        "worst"
+      ],
+      "title": "Linear",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Measured": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "default": "higher_better",
+          "enum": [
+            "higher_better",
+            "lower_better"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "anchors": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Anchors",
+          "type": "object"
+        },
+        "type": {
+          "const": "measured",
+          "title": "Type",
+          "type": "string"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "map": {
+          "discriminator": {
+            "mapping": {
+              "linear": "#/$defs/Linear",
+              "points": "#/$defs/Points"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Linear"
+            },
+            {
+              "$ref": "#/$defs/Points"
+            }
+          ],
+          "title": "Map"
+        }
+      },
+      "required": [
+        "type",
+        "unit",
+        "map"
+      ],
+      "title": "Measured",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Metric": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "guidance": {
+          "default": "",
+          "title": "Guidance",
+          "type": "string"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "binary": "#/$defs/Binary",
+                  "measured": "#/$defs/Measured",
+                  "numeric": "#/$defs/Numeric",
+                  "ordinal": "#/$defs/Ordinal"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Numeric"
+                },
+                {
+                  "$ref": "#/$defs/Binary"
+                },
+                {
+                  "$ref": "#/$defs/Ordinal"
+                },
+                {
+                  "$ref": "#/$defs/Measured"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "anchors": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Anchors",
+          "type": "object"
+        },
+        "weight": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weight"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group"
+        },
+        "judges": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Judges"
+        },
+        "gate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Gate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "applies_if": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Condition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "question"
+      ],
+      "title": "Metric",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Numeric": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "default": "higher_better",
+          "enum": [
+            "higher_better",
+            "lower_better"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "anchors": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Anchors",
+          "type": "object"
+        },
+        "type": {
+          "const": "numeric",
+          "title": "Type",
+          "type": "string"
+        },
+        "min": {
+          "title": "Min",
+          "type": "number"
+        },
+        "max": {
+          "title": "Max",
+          "type": "number"
+        },
+        "step": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Step",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "min",
+        "max"
+      ],
+      "title": "Numeric",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Ordinal": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "default": "higher_better",
+          "enum": [
+            "higher_better",
+            "lower_better"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "anchors": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Anchors",
+          "type": "object"
+        },
+        "type": {
+          "const": "ordinal",
+          "title": "Type",
+          "type": "string"
+        },
+        "levels": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Levels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "levels"
+      ],
+      "title": "Ordinal",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "Points": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "points",
+          "title": "Type",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "points"
+      ],
+      "title": "Points",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "ReportScale": {
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "default": 0,
+          "title": "Min",
+          "type": "number"
+        },
+        "max": {
+          "default": 1,
+          "title": "Max",
+          "type": "number"
+        }
+      },
+      "title": "ReportScale",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    },
+    "SubjectSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "default": "any",
+          "enum": [
+            "text",
+            "file",
+            "json",
+            "any"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "title": "SubjectSpec",
+      "type": "object",
+      "patternProperties": {
+        "^x-": {}
+      }
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "rubrickit": {
+      "const": "0.1",
+      "title": "Rubrickit",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "version": {
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "extends": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Extends"
+    },
+    "subject": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SubjectSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "scales": {
+      "additionalProperties": {
+        "discriminator": {
+          "mapping": {
+            "binary": "#/$defs/Binary",
+            "measured": "#/$defs/Measured",
+            "numeric": "#/$defs/Numeric",
+            "ordinal": "#/$defs/Ordinal"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/Numeric"
+          },
+          {
+            "$ref": "#/$defs/Binary"
+          },
+          {
+            "$ref": "#/$defs/Ordinal"
+          },
+          {
+            "$ref": "#/$defs/Measured"
+          }
+        ]
+      },
+      "title": "Scales",
+      "type": "object"
+    },
+    "judges": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JudgeConfig"
+      },
+      "title": "Judges",
+      "type": "object"
+    },
+    "defaults": {
+      "$ref": "#/$defs/Defaults"
+    },
+    "groups": {
+      "items": {
+        "$ref": "#/$defs/Group"
+      },
+      "title": "Groups",
+      "type": "array"
+    },
+    "metrics": {
+      "items": {
+        "$ref": "#/$defs/Metric"
+      },
+      "minItems": 1,
+      "title": "Metrics",
+      "type": "array"
+    },
+    "aggregate": {
+      "$ref": "#/$defs/Aggregate"
+    },
+    "bands": {
+      "items": {
+        "$ref": "#/$defs/Band"
+      },
+      "title": "Bands",
+      "type": "array"
+    }
+  },
+  "required": [
+    "rubrickit",
+    "id",
+    "version",
+    "name",
+    "metrics"
+  ],
+  "title": "Rubric",
+  "type": "object",
+  "patternProperties": {
+    "^x-": {}
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

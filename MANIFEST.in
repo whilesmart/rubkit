@@ -1,0 +1,3 @@
+include README.md
+recursive-include spec *.yaml *.json
+recursive-include tests *.py
