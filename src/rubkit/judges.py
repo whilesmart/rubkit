@@ -7,6 +7,7 @@ import random
 from pathlib import Path
 from typing import Callable, Protocol
 
+from .grounding import grounded
 from .models import Judgement, Metric, Rubric, Subject
 from .router import Completion
 from .scoring import applies, new_run, normalize, score
@@ -67,6 +68,11 @@ def judgement_prompt(rubric: Rubric, subject: Subject, metric: Metric, judge: st
         "List supporting evidence before deciding the score. Return evidence, rationale, value, "
         "and confidence (0 to 1) as JSON.\n"
     )
+    if metric.evidence == "quoted":
+        prompt += (
+            "Each evidence item must be copied word for word from the subject's text, with no "
+            "paraphrase or added words; join separate parts with ...\n"
+        )
     prompt += (config.prompt + "\n" if config.prompt else "") + context
     return prompt
 
@@ -99,6 +105,11 @@ class LLMJudge:
             }
         )
         return result
+
+
+def _judged(judge: Judge, name: str, subject: Subject, metric: Metric) -> Judgement:
+    judgement = Judgement.model_validate(judge.judge(subject, metric).model_dump())
+    return judgement.model_copy(update={"judge": name})
 
 
 def estimate_calls(rubric: Rubric, subjects: list[Subject]) -> int:
@@ -197,9 +208,13 @@ def run(
                             update={"cached": True}
                         )
                     else:
-                        judgement = registry[name].judge(subject, metric)
-                        judgement = Judgement.model_validate(judgement.model_dump())
-                        judgement = judgement.model_copy(update={"judge": name})
+                        judgement = _judged(registry[name], name, subject, metric)
+                        if metric.evidence == "quoted" and judgement.status == "scored":
+                            if not grounded(judgement, subject):
+                                judgement = _judged(registry[name], name, subject, metric)
+                            judgement = judgement.model_copy(
+                                update={"grounded": grounded(judgement, subject)}
+                            )
                         if judgement.value is not None and judgement.status == "scored":
                             normalize(rubric.scale_for(metric), judgement.value)
                         if path:

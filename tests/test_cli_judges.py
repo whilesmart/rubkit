@@ -137,7 +137,7 @@ def test_registered_function_run():
 
 def test_schema_files_current():
     for name, model in [("rubric", Rubric), ("result", Result)]:
-        path = ROOT / "src" / "rubkit" / "schemas" / f"rubkit-{name}-0.1.schema.json"
+        path = ROOT / "src" / "rubkit" / "schemas" / f"rubkit-{name}-0.2.schema.json"
         assert json.loads(path.read_text()) == schema_for(model)
         Draft202012Validator.check_schema(schema_for(model))
 

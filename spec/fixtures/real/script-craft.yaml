@@ -1,0 +1,43 @@
+rubkit: "0.2"
+id: script-craft
+version: 0.1.0
+name: Script craft
+subject: {type: text, description: "A short film script, one line per speaker"}
+scales:
+  score: {type: numeric, min: 0, max: 5, step: 1, anchors: {0: Absent, 1: Weak, 3: Adequate, 5: Excellent}}
+  check: {type: binary}
+judges:
+  judge: {type: llm, provider: router, model: judge}
+defaults: {scale: score, judges: [judge]}
+metrics:
+  - id: goal
+    name: Clear goal
+    question: Does the main character want something specific that the audience understands early?
+    weight: 3
+    evidence: quoted
+  - id: escalation
+    name: Escalation
+    question: Does each exchange make the situation worse or sharper than the one before?
+    weight: 2
+    evidence: quoted
+  - id: payoff
+    name: Payoff
+    question: Does the ending pay off something the script set up earlier?
+    weight: 2
+    evidence: quoted
+  - id: setup-before-resolution
+    name: Answer set up before it resolves
+    question: >-
+      If a product or solution resolves the problem, was it established earlier in the story, before
+      the crisis where a character turns to it? Naming it only at the moment a character reaches for
+      it does not count. True if it was established earlier or nothing resolves the problem; false if
+      it first appears when it is needed.
+    scale: check
+    weight: 0
+    evidence: quoted
+    gate: {below: true, action: fail, message: The resolution was never set up}
+aggregate: {report_scale: {min: 0, max: 100}}
+bands:
+  - {min: 70, label: Ready}
+  - {min: 50, label: Needs a rewrite}
+  - {min: 0, label: Weak}

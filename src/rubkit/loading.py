@@ -148,6 +148,6 @@ def load_rubric(source: str | Path, *, allow_urls: bool = False, _seen=None) -> 
 def write_schemas(directory: Path) -> None:
     directory.mkdir(parents=True, exist_ok=True)
     for name, model in [("rubric", Rubric), ("result", Result)]:
-        (directory / f"rubkit-{name}-0.1.schema.json").write_text(
+        (directory / f"rubkit-{name}-0.2.schema.json").write_text(
             json.dumps(schema_for(model), indent=2) + "\n"
         )

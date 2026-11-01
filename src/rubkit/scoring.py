@@ -196,7 +196,9 @@ def score(
         local_flags = []
         if max(all_ns) - min(all_ns) > threshold:
             local_flags.append(f"judges disagree (spread {max(all_ns) - min(all_ns):.3g})")
-            flags.append(f"{metric.id}: {local_flags[0]}")
+        if any(j.grounded is False for j in scored):
+            local_flags.append("evidence not found in the subject")
+        flags.extend(f"{metric.id}: {flag}" for flag in local_flags)
         metrics[metric.id] = MetricResult(
             value=value, n=n, status="scored", judgements=entries, flags=local_flags
         )

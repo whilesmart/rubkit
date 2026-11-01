@@ -40,7 +40,7 @@ print(result.score.reported)
 
 ## Rubrics
 
-Rubrics require `rubkit: "0.1"`, `id`, `version`, `name`, and at least one metric. Every metric needs a scale, either inline or through `defaults.scale`. Named scales, defaults, nested groups, gates, bands, and simple metadata conditions follow the v0.1 format.
+Rubrics require `rubkit: "0.1"` or `"0.2"`, `id`, `version`, `name`, and at least one metric. Every metric needs a scale, either inline or through `defaults.scale`. Named scales, defaults, nested groups, gates, bands, and simple metadata conditions follow the same format in both; 0.2 adds quoted evidence.
 
 Unknown fields are rejected except fields beginning with `x-`. Rubric and result JSON Schemas ship in `src/rubkit/schemas/`. Pydantic additionally checks references, cycles, scale bounds, and other constraints involving multiple fields.
 
@@ -75,6 +75,24 @@ Linear mappings clamp outside their endpoints. Point mappings interpolate betwee
 * A disagreement flag uses the spread of all normalized judgements and the smallest participating judge threshold.
 * The rubric hash covers the resolved rubric including defaults. Results embed that resolved rubric. Scoring values are deterministic; run ids and timestamps are new for each invocation. Pass a fixed `RunRecord` to `score` when comparing entire result documents.
 
+### Pass/fail checks
+
+A check that must hold whatever the score is a binary metric with weight 0 and a fail gate. It never moves the score, and a false answer sets the verdict to `failed`:
+
+```yaml
+- id: setup-before-resolution
+  name: Answer set up before it resolves
+  question: Was the product mentioned before the moment it solves the problem?
+  scale: {type: binary}
+  weight: 0
+  gate: {below: true, action: fail, message: The resolution was never set up}
+```
+
+### Quoted evidence
+
+`evidence: quoted` on a metric asks the judge to copy each evidence item word for word from the subject's text, joining separate parts with `...`. Each quote is matched against the text, ignoring case, spacing and surrounding quotation marks. A judge whose evidence is not found is asked once more; if it still fails, its judgement is kept with `grounded: false` and the metric and result carry the flag `evidence not found in the subject`. Metrics without it record `grounded: null`.
+
+
 ## Judges and routing
 
 A judge implements `judge(subject, metric) -> Judgement`. `HumanJudge` prompts for a JSON score and rationale. `FunctionJudge` wraps a Python callable returning `Judgement`; rubric function references use `module:attribute`.
@@ -104,6 +122,8 @@ rubkit run rubric.yaml subjects.json --router-config spec/fixtures/router.exampl
 
 The example routes `quality` to Anthropic and declares an OpenAI fallback. Set the corresponding provider API keys in your environment. A provider/model rubric entry also uses the router; no direct provider client is created. Models must support structured JSON output. Temperature is omitted unless explicitly configured.
 
+Any OpenAI-compatible endpoint works as a deployment through `api_base`, with its key read from the environment; `spec/fixtures/router.openai-compatible.example.yaml` routes the alias `judge` this way. Pick a judge model other than the one that wrote what it grades.
+
 The Python runner accepts a `router=ModelRouter.from_file(path)`, custom judge instances, and adapters for an existing inference gateway. `assignments={"metric-id": ["judge-name"]}` overrides rubric judge assignments for a run. Results record the resolved assignments and rubric hash. All subjects in one run share the run id and start timestamp.
 
 ## Export, replay, and compare
@@ -122,6 +142,8 @@ rubkit arena results.yaml --output rankings.json
 `rerun` reuses saved judgements by default and makes no judge calls. `--rejudge` invokes the original judges again against the saved subject and rubric. It requires any original Python function dependencies or provider credentials. Router deployments and credentials remain external to the result.
 
 CSV exports contain one row per judgement, with rows for unscored metrics as well. They preserve zero and false scores, evidence, judge rationale, and model names. CSV is a viewing format; use JSON or YAML for replay.
+
+In Python, `critique(result, top=3)` lists what to fix first: failed gates, then capped and flagged ones, then the metrics losing the most points on the report scale, each with its rationale and evidence. Points lost are measured as under a weighted mean. `compare(before, after)` gives the change in score, verdict, each metric's normalized score and the gates added or cleared between two results of the same rubric, and says whether both used the same resolved definition.
 
 `arena` compares saved results from the same resolved rubric. It rejects blocked results, duplicate subject ids, and differing rubric hashes. Equal scores share a rank, and the next rank skips tied positions.
 

@@ -1,0 +1,10 @@
+# A judge reached through any OpenAI-compatible endpoint, by alias. The key is read from the environment.
+model_list:
+  - model_name: judge
+    litellm_params:
+      model: openai/gpt-6.1-terra
+      api_base: http://127.0.0.1:8317/v1
+      api_key: os.environ/JUDGE_API_KEY
+router_settings:
+  num_retries: 0
+  timeout: 120

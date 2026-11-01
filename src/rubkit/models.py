@@ -12,6 +12,7 @@ Method = Literal["weighted_mean", "sum", "min", "geometric_mean"]
 Missing = Literal["reweight", "zero", "block"]
 Reconcile = Literal["median", "mean", "majority"]
 Value = float | bool | str
+Evidence = Literal["free", "quoted"]
 
 
 class Model(BaseModel):
@@ -162,6 +163,7 @@ class Metric(Model):
     judges: list[str] | None = None
     gate: Gate | None = None
     applies_if: Condition | None = None
+    evidence: Evidence = "free"
 
 
 class Group(Model):
@@ -210,7 +212,7 @@ class Band(Model):
 
 
 class Rubric(Model):
-    rubkit: Literal["0.1"]
+    rubkit: Literal["0.1", "0.2"]
     id: Slug
     version: Annotated[
         str,
@@ -294,6 +296,7 @@ class Judgement(Model):
     usage: CallUsage | None = None
     cached: bool = False
     prompt: str | None = None
+    grounded: bool | None = None
 
 
 class MetricResult(Model):
