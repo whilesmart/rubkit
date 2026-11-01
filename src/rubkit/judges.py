@@ -4,6 +4,7 @@ import hashlib
 import importlib
 import json
 import random
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Protocol
 
@@ -136,6 +137,7 @@ def run(
     seed: int = 0,
     reconcile_method: str = "median",
     disagreement: float = 0.4,
+    workers: int = 1,
 ):
     if assignments:
         data = rubric.model_dump(mode="json", by_alias=True)
@@ -159,6 +161,7 @@ def run(
         cache.mkdir(parents=True, exist_ok=True)
     for subject in subjects:
         collected = {}
+        tasks = []
         metrics = list(rubric.metrics)
         if shuffle:
             rng.shuffle(metrics)
@@ -203,24 +206,33 @@ def run(
                     }
                     key = hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
                     path = cache / f"{key}.json" if cache and config.type == "llm" else None
-                    if path and path.exists():
-                        judgement = Judgement.model_validate_json(path.read_text()).model_copy(
-                            update={"cached": True}
-                        )
-                    else:
-                        judgement = _judged(registry[name], name, subject, metric)
-                        if metric.evidence == "quoted" and judgement.status == "scored":
-                            if not grounded(judgement, subject):
-                                judgement = _judged(registry[name], name, subject, metric)
-                            judgement = judgement.model_copy(
-                                update={"grounded": grounded(judgement, subject)}
-                            )
-                        if judgement.value is not None and judgement.status == "scored":
-                            normalize(rubric.scale_for(metric), judgement.value)
-                        if path:
-                            path.write_text(judgement.model_dump_json(indent=2))
-                    entries.append(judgement)
+                    tasks.append((entries, registry[name], name, metric, path))
             collected[metric.id] = entries
+
+        def one(task):
+            entries, judge, name, metric, path = task
+            if path and path.exists():
+                return Judgement.model_validate_json(path.read_text()).model_copy(
+                    update={"cached": True}
+                )
+            judgement = _judged(judge, name, subject, metric)
+            if metric.evidence == "quoted" and judgement.status == "scored":
+                if not grounded(judgement, subject):
+                    judgement = _judged(judge, name, subject, metric)
+                judgement = judgement.model_copy(update={"grounded": grounded(judgement, subject)})
+            if judgement.value is not None and judgement.status == "scored":
+                normalize(rubric.scale_for(metric), judgement.value)
+            if path:
+                path.write_text(judgement.model_dump_json(indent=2))
+            return judgement
+
+        if workers > 1:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                judged = list(pool.map(one, tasks))
+        else:
+            judged = [one(task) for task in tasks]
+        for task, judgement in zip(tasks, judged):
+            task[0].append(judgement)
         results.append(
             score(
                 rubric,

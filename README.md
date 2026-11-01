@@ -124,7 +124,7 @@ The example routes `quality` to Anthropic and declares an OpenAI fallback. Set t
 
 Any OpenAI-compatible endpoint works as a deployment through `api_base`, with its key read from the environment; `spec/fixtures/router.openai-compatible.example.yaml` routes the alias `judge` this way. Pick a judge model other than the one that wrote what it grades.
 
-The Python runner accepts a `router=ModelRouter.from_file(path)`, custom judge instances, and adapters for an existing inference gateway. `assignments={"metric-id": ["judge-name"]}` overrides rubric judge assignments for a run. Results record the resolved assignments and rubric hash. All subjects in one run share the run id and start timestamp.
+The Python runner accepts a `router=ModelRouter.from_file(path)`, custom judge instances, and adapters for an existing inference gateway. `assignments={"metric-id": ["judge-name"]}` overrides rubric judge assignments for a run. Results record the resolved assignments and rubric hash. All subjects in one run share the run id and start timestamp. `workers=n` judges a subject's metrics in up to n threads at once, so a judge must be safe to call from several threads; results keep the rubric's order.
 
 ## Export, replay, and compare
 

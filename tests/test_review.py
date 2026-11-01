@@ -158,3 +158,31 @@ def test_a_judge_on_an_openai_compatible_endpoint_is_reached_by_its_alias(tmp_pa
     path_sent, key, body = sent[0]
     assert path_sent == "/v1/chat/completions" and key == "Bearer your-api-key-here"
     assert body["model"] == "gpt-6.1-terra" and body["response_format"]["type"] == "json_schema"
+
+
+def test_judging_in_parallel_overlaps_the_calls_and_scores_the_same():
+    recorded = RESULTS["bakery"]
+    answers = {k: m.judgements[0] for k, m in recorded.metrics.items()}
+    running, most, lock = [0], [0], threading.Lock()
+
+    def answer(subject, metric):
+        with lock:
+            running[0] += 1
+            most[0] = max(most[0], running[0])
+        threading.Event().wait(0.05)
+        with lock:
+            running[0] -= 1
+        return answers[metric.id]
+
+    rubric = load_rubric(REAL / "script-craft.yaml")
+    judge = {"judge": FunctionJudge("judge", answer)}
+    alone = run(rubric, [recorded.subject], judges=judge)[0]
+    most[0] = 0
+    together = run(rubric, [recorded.subject], judges=judge, workers=4)[0]
+
+    assert most[0] > 1
+    assert together.score == alone.score
+    assert together.verdict == alone.verdict
+    assert {k: m.value for k, m in together.metrics.items()} == {
+        k: m.value for k, m in alone.metrics.items()
+    }
